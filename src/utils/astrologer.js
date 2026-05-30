@@ -19,7 +19,6 @@ async function geocode(place) {
     const city      = address?.city ?? address?.town ?? address?.village ?? place
     const nation    = address?.country_code?.toUpperCase() ?? ''
 
-    // Resolve timezone from coordinates
     let timezone = 'UTC'
     try {
       const tzRes = await fetch(
@@ -39,14 +38,6 @@ async function geocode(place) {
 
 /**
  * Calls the Astrologer API v5 /chart/birth-chart endpoint.
- * Returns { type: 'svg', content: '<svg...>' } or { type: 'json', content: {...} }
- *
- * @param {object} params
- * @param {string} params.apiKey
- * @param {string} params.name
- * @param {string} params.date   "YYYY-MM-DD"
- * @param {string} params.time   "HH:MM"
- * @param {string} params.place
  */
 export async function fetchNatalChart({ apiKey, name, date, time, place }) {
   if (!apiKey) throw new Error('Introduce tu API key de RapidAPI primero.')
@@ -58,13 +49,8 @@ export async function fetchNatalChart({ apiKey, name, date, time, place }) {
 
   const body = {
     subject: {
-      name,
-      year, month, day, hour, minute,
-      city,
-      nation,
-      latitude,
-      longitude,
-      timezone,
+      name, year, month, day, hour, minute,
+      city, nation, latitude, longitude, timezone,
       zodiac_type: 'Tropical',
       houses_system_identifier: 'P',
     },
@@ -104,7 +90,6 @@ export async function fetchNatalChart({ apiKey, name, date, time, place }) {
   }
 
   const contentType = res.headers.get('content-type') ?? ''
-
   if (contentType.includes('svg') || contentType.includes('image')) {
     const svg = await res.text()
     return { type: 'svg', content: svg, meta: { name, place, city, latitude, longitude, timezone } }
@@ -114,22 +99,61 @@ export async function fetchNatalChart({ apiKey, name, date, time, place }) {
   return { type: 'json', content: json, meta: { name, place, city, latitude, longitude, timezone } }
 }
 
-// ─── Text formatter (used only when the API returns JSON, not SVG) ────────────
+// ─── Lookup tables ────────────────────────────────────────────────────────────
 
-const PLANET_EMOJI = {
-  Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂',
-  Jupiter: '♃', Saturn: '♄', Uranus: '⛢', Neptune: '♆', Pluto: '♇',
-  'True Node': '☊', 'Mean Node': '☊', north_node: '☊',
-  Chiron: '⚷', Lilith: '⚸',
+// Planet keys inside subject, in display order
+const PLANET_KEYS = [
+  'sun','moon','mercury','venus','mars',
+  'jupiter','saturn','uranus','neptune','pluto',
+  'chiron','mean_lilith','mean_north_lunar_node',
+]
+
+const PLANET_SYMBOL = {
+  sun:'☉', moon:'☽', mercury:'☿', venus:'♀', mars:'♂',
+  jupiter:'♃', saturn:'♄', uranus:'⛢', neptune:'♆', pluto:'♇',
+  chiron:'⚷', mean_lilith:'⚸', mean_north_lunar_node:'☊',
 }
 
-const SIGN_EMOJI = {
-  Ari: '♈', Tau: '♉', Gem: '♊', Can: '♋', Leo: '♌', Vir: '♍',
-  Lib: '♎', Sco: '♏', Sag: '♐', Cap: '♑', Aqu: '♒', Pis: '♓',
+const PLANET_ES = {
+  sun:'Sol', moon:'Luna', mercury:'Mercurio', venus:'Venus', mars:'Marte',
+  jupiter:'Júpiter', saturn:'Saturno', uranus:'Urano', neptune:'Neptuno', pluto:'Plutón',
+  chiron:'Quirón', mean_lilith:'Lilith', mean_north_lunar_node:'Nodo Norte',
 }
 
-function signGlyph(sign = '') {
-  return SIGN_EMOJI[sign.slice(0, 3)] ?? ''
+const SIGN_ES = {
+  Ari:'Aries', Tau:'Tauro', Gem:'Géminis', Can:'Cáncer',
+  Leo:'Leo',   Vir:'Virgo', Lib:'Libra',   Sco:'Escorpio',
+  Sag:'Sagitario', Cap:'Capricornio', Aqu:'Acuario', Pis:'Piscis',
+}
+
+const SIGN_GLYPH = {
+  Ari:'♈', Tau:'♉', Gem:'♊', Can:'♋', Leo:'♌', Vir:'♍',
+  Lib:'♎', Sco:'♏', Sag:'♐', Cap:'♑', Aqu:'♒', Pis:'♓',
+}
+
+const HOUSE_KEYS = [
+  'first_house','second_house','third_house','fourth_house',
+  'fifth_house','sixth_house','seventh_house','eighth_house',
+  'ninth_house','tenth_house','eleventh_house','twelfth_house',
+]
+
+// Convert "Sixth_House" → 6
+function houseNum(str) {
+  const map = {
+    First:1,Second:2,Third:3,Fourth:4,Fifth:5,Sixth:6,
+    Seventh:7,Eighth:8,Ninth:9,Tenth:10,Eleventh:11,Twelfth:12,
+  }
+  const word = str?.split('_')[0] ?? ''
+  return map[word] ?? str
+}
+
+const ASPECT_ES = {
+  conjunction: 'Conjunción ☌',
+  opposition:  'Oposición ☍',
+  trine:       'Trígono △',
+  square:      'Cuadratura □',
+  sextile:     'Sextil ⚹',
+  quincunx:    'Quincuncio',
 }
 
 function formatDeg(deg) {
@@ -140,71 +164,102 @@ function formatDeg(deg) {
   return `${d}°${String(m).padStart(2,'0')}'${String(s).padStart(2,'0')}"`
 }
 
+// ─── Formatter ────────────────────────────────────────────────────────────────
+
 export function formatNatalChart(data, profileName) {
-  if (!data) return ''
+  if (!data || data.type === 'svg') return data?.content ?? ''
 
-  // If the API returned SVG, this function shouldn't be called — but guard anyway
-  if (data.type === 'svg') return data.content
+  const meta    = data.meta ?? {}
+  const content = data.content ?? data
+  const subj    = content.chart_data?.subject ?? content.subject ?? {}
+  const aspects = content.chart_data?.aspects ?? []
 
-  const meta  = data.meta ?? {}
-  // Support both chart_data (v5 JSON) and chart (older shape)
-  const chart = data.content?.chart_data ?? data.content?.chart ?? data.content ?? data
+  const lines = []
+  const pad   = (s, n) => String(s).padEnd(n)
 
-  const lines = [
-    `✦ ─────────────── CARTA NATAL ─────────────── ✦`,
-    `  ${(meta.name ?? profileName).toUpperCase()}`,
-    meta.place ? `  ${meta.place}` : '',
-    meta.latitude != null
-      ? `  ${Number(meta.latitude).toFixed(4)}° lat, ${Number(meta.longitude).toFixed(4)}° lon  ·  ${meta.timezone}`
-      : '',
-    '',
-  ]
+  // ── Header ──────────────────────────────────────────────────────────────────
+  lines.push('✦ ─────────────── CARTA NATAL ─────────────── ✦')
+  lines.push(`  ${(meta.name ?? profileName).toUpperCase()}`)
+  if (meta.place) lines.push(`  ${meta.place}`)
+  const dt = subj.iso_formatted_local_datetime
+  if (dt) {
+    const [datePart, timePart] = dt.split('T')
+    const [y,m,d] = datePart.split('-')
+    const meses = ['enero','febrero','marzo','abril','mayo','junio',
+                   'julio','agosto','septiembre','octubre','noviembre','diciembre']
+    lines.push(`  ${parseInt(d)} de ${meses[parseInt(m)-1]} de ${y}  ·  ${timePart.slice(0,5)}`)
+  }
+  if (subj.houses_system_name) lines.push(`  Sistema de casas: ${subj.houses_system_name}`)
+  lines.push('')
 
-  const planets = chart.planets ?? chart.planets_degrees_ut ?? chart.bodies ?? []
-  if (Array.isArray(planets) && planets.length) {
-    lines.push('── PLANETAS Y PUNTOS ──────────────────────────')
-    for (const p of planets) {
-      const rawName = p.name ?? p.id ?? '?'
-      const emoji   = PLANET_EMOJI[rawName] ?? '·'
-      const name    = `${emoji} ${rawName}`.padEnd(18)
-      const sign    = p.sign ?? p.zodiac_sign ?? ''
-      const deg     = p.position != null ? formatDeg(p.position % 30)
-                    : p.abs_pos  != null ? formatDeg(p.abs_pos  % 30) : ''
-      const house   = p.house != null ? `  Casa ${p.house}` : ''
-      const retro   = p.retrograde ? ' ℞' : ''
-      lines.push(`  ${name} ${signGlyph(sign)} ${sign.padEnd(12)} ${deg}${house}${retro}`)
+  // ── Ascendente y Medio Cielo ────────────────────────────────────────────────
+  const asc = subj.first_house
+  const mc  = subj.tenth_house ?? subj.medium_coeli
+  if (asc || mc) {
+    lines.push('── ÁNGULOS ─────────────────────────────────────')
+    if (asc) {
+      const sign = SIGN_ES[asc.sign] ?? asc.sign
+      const glyph = SIGN_GLYPH[asc.sign] ?? ''
+      lines.push(`  ${pad('AC (Ascendente)', 20)} ${glyph} ${sign.padEnd(13)} ${formatDeg(asc.position)}`)
+    }
+    if (mc) {
+      const sign = SIGN_ES[mc.sign] ?? mc.sign
+      const glyph = SIGN_GLYPH[mc.sign] ?? ''
+      lines.push(`  ${pad('MC (Medio Cielo)', 20)} ${glyph} ${sign.padEnd(13)} ${formatDeg(mc.position)}`)
     }
     lines.push('')
   }
 
-  const houses = chart.houses ?? chart.cusps ?? []
-  if (Array.isArray(houses) && houses.length) {
-    lines.push('── CÚSPIDES DE CASAS ──────────────────────────')
-    for (const h of houses) {
-      const num  = String(h.number ?? h.house ?? '?').padStart(2)
-      const sign = h.sign ?? h.zodiac_sign ?? ''
-      const deg  = h.position != null ? formatDeg(h.position) : ''
-      lines.push(`  Casa ${num}  ${signGlyph(sign)} ${sign.padEnd(12)} ${deg}`)
+  // ── Posiciones planetarias ──────────────────────────────────────────────────
+  const planetRows = PLANET_KEYS.map(k => subj[k]).filter(Boolean)
+  if (planetRows.length) {
+    lines.push('── POSICIONES PLANETARIAS ──────────────────────')
+    lines.push(`  ${'Planeta'.padEnd(15)} ${'Signo'.padEnd(15)} ${'Grado'.padEnd(12)} Casa   `)
+    lines.push('  ' + '─'.repeat(56))
+    for (const p of planetRows) {
+      const key    = PLANET_KEYS.find(k => subj[k] === p)
+      const symbol = PLANET_SYMBOL[key] ?? '·'
+      const name   = PLANET_ES[key] ?? p.name ?? key
+      const sign   = SIGN_ES[p.sign] ?? p.sign ?? '?'
+      const glyph  = SIGN_GLYPH[p.sign] ?? ''
+      const deg    = p.position != null ? formatDeg(p.position) : '—'
+      const house  = p.house ? `Casa ${houseNum(p.house)}` : '—'
+      const retro  = p.retrograde ? ' ℞' : ''
+      lines.push(`  ${symbol} ${pad(name, 13)} ${glyph} ${pad(sign, 13)} ${pad(deg, 12)} ${house}${retro}`)
     }
     lines.push('')
   }
 
-  const aspects = chart.aspects ?? []
-  if (Array.isArray(aspects) && aspects.length) {
-    lines.push('── ASPECTOS ────────────────────────────────────')
+  // ── Casas ───────────────────────────────────────────────────────────────────
+  const houseRows = HOUSE_KEYS.map((k,i) => subj[k] ? { num: i+1, ...subj[k] } : null).filter(Boolean)
+  if (houseRows.length) {
+    lines.push('── CÚSPIDES DE CASAS ───────────────────────────')
+    for (const h of houseRows) {
+      const sign  = SIGN_ES[h.sign] ?? h.sign ?? '?'
+      const glyph = SIGN_GLYPH[h.sign] ?? ''
+      const deg   = h.position != null ? formatDeg(h.position) : '—'
+      lines.push(`  Casa ${String(h.num).padStart(2)}  ${glyph} ${pad(sign, 13)} ${deg}`)
+    }
+    lines.push('')
+  }
+
+  // ── Aspectos ────────────────────────────────────────────────────────────────
+  if (aspects.length) {
+    lines.push('── ASPECTOS PRINCIPALES ────────────────────────')
+    // Translate planet names to Spanish
+    const nameEs = (en) => {
+      const key = Object.entries(PLANET_ES).find(([,v]) => v.toLowerCase() === en?.toLowerCase() || PLANET_ES[en?.toLowerCase()] === v)
+      return PLANET_ES[en?.toLowerCase()] ?? en
+    }
     for (const a of aspects) {
-      const p1  = a.p1_name ?? a.planet1 ?? a.body1 ?? '?'
-      const p2  = a.p2_name ?? a.planet2 ?? a.body2 ?? '?'
-      const typ = a.aspect  ?? a.type    ?? '?'
-      const orb = a.orbit != null ? ` (orbe ${Number(a.orbit).toFixed(2)}°)` : ''
-      lines.push(`  ${p1}  ${typ}  ${p2}${orb}`)
+      const p1   = nameEs(a.p1_name)
+      const p2   = nameEs(a.p2_name)
+      const tipo = ASPECT_ES[a.aspect] ?? a.aspect
+      const orb  = a.orbit != null ? ` (orbe ${Number(a.orbit).toFixed(1)}°)` : ''
+      const mov  = a.aspect_movement === 'Applying' ? ' →' : ' ←'
+      lines.push(`  ${pad(p1, 12)} — ${pad(p2, 12)}  ${tipo}${orb}${mov}`)
     }
     lines.push('')
-  }
-
-  if (lines.length <= 6) {
-    lines.push('── DATOS CRUDOS ────────────────────────────────')
-    lines.push(JSON.stringify(data.content ?? data, null, 2))
   }
 
   lines.push('✦ ─────────────────────────────────────────── ✦')
