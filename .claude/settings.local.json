@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "PowerShell(if \\(-not $?\\) { \"Directory is empty or does not exist\" })",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "PowerShell(cd \"C:\\\\Users\\\\alber\\\\Desktop\\\\NeuroCarta\"; $env:VERCEL_TOKEN = \\(Get-Content \"C:\\\\Users\\\\alber\\\\.claude\\\\mcp.json\" | ConvertFrom-Json\\).mcpServers.vercel.env.VERCEL_TOKEN; vercel --yes --prod --token $env:VERCEL_TOKEN 2>&1)"
     ]
   }
 }

@@ -39,7 +39,7 @@ async function geocode(place) {
 /**
  * Calls the Astrologer API v5 /chart/birth-chart endpoint.
  */
-export async function fetchNatalChart({ apiKey, name, date, time, place }) {
+export async function fetchNatalChart({ apiKey, name, date, time, place, houseSystem = 'P', zodiacType = 'Tropical' }) {
   if (!apiKey) throw new Error('Introduce tu API key de RapidAPI primero.')
 
   const [year, month, day] = date.split('-').map(Number)
@@ -51,8 +51,8 @@ export async function fetchNatalChart({ apiKey, name, date, time, place }) {
     subject: {
       name, year, month, day, hour, minute,
       city, nation, latitude, longitude, timezone,
-      zodiac_type: 'Tropical',
-      houses_system_identifier: 'P',
+      zodiac_type: zodiacType,
+      houses_system_identifier: houseSystem,
     },
     language: 'EN',
     theme: 'dark',

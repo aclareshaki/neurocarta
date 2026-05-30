@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
 import { fetchNatalChart, formatNatalChart } from '../utils/astrologer'
 
+const HOUSE_LABELS = {
+  P: 'Placidus', W: 'Casas Enteras', K: 'Koch', E: 'Equal', O: 'Porfiry',
+}
+
 export default function NatalChartModal({ profile, apiKey, onClose }) {
   const [status, setStatus] = useState('loading')
   const [result, setResult] = useState(null)
@@ -12,10 +16,12 @@ export default function NatalChartModal({ profile, apiKey, onClose }) {
       try {
         const data = await fetchNatalChart({
           apiKey,
-          name:  profile.name,
-          date:  profile.date,
-          time:  profile.time || '12:00',
-          place: profile.place || '',
+          name:        profile.name,
+          date:        profile.date,
+          time:        profile.time || '12:00',
+          place:       profile.place || '',
+          houseSystem: profile.houseSystem || 'P',
+          zodiacType:  profile.zodiacType  || 'Tropical',
         })
         if (cancelled) return
         setResult(data)
@@ -88,8 +94,12 @@ export default function NatalChartModal({ profile, apiKey, onClose }) {
               <p className="text-xs text-sepia-400 font-sans mt-0.5">
                 {result.meta.city || profile.place}
                 {result.meta.timezone && result.meta.timezone !== 'UTC' && (
-                  <span className="text-parchment-400"> · {result.meta.timezone}</span>
+                  <span> · {result.meta.timezone}</span>
                 )}
+                {profile.houseSystem && (
+                  <span> · {HOUSE_LABELS[profile.houseSystem] ?? profile.houseSystem}</span>
+                )}
+                {profile.zodiacType === 'Sidereal' && <span> · Sidéreo</span>}
               </p>
             )}
           </div>

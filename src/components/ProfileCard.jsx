@@ -1,5 +1,9 @@
 import { useState } from 'react'
 
+const HOUSE_LABELS = {
+  P: 'Placidus', W: 'Casas Enteras', K: 'Koch', E: 'Equal', O: 'Porfiry',
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return '—'
   const [y, m, d] = dateStr.split('-')
@@ -78,6 +82,20 @@ export default function ProfileCard({ profile, onEdit, onDelete, onChart }) {
             <div className="flex gap-2">
               <span className="text-sepia-400 w-16 shrink-0 text-xs uppercase tracking-wider pt-px">Lugar</span>
               <span>{profile.place}</span>
+            </div>
+          )}
+          {(profile.houseSystem || profile.zodiacType) && (
+            <div className="flex gap-2 flex-wrap pt-1">
+              {profile.houseSystem && (
+                <span className="text-[10px] font-sans uppercase tracking-wider text-sepia-400 border border-parchment-300 px-2 py-0.5">
+                  {HOUSE_LABELS[profile.houseSystem] ?? profile.houseSystem}
+                </span>
+              )}
+              {profile.zodiacType === 'Sidereal' && (
+                <span className="text-[10px] font-sans uppercase tracking-wider text-sepia-400 border border-parchment-300 px-2 py-0.5">
+                  Sidéreo
+                </span>
+              )}
             </div>
           )}
         </div>
