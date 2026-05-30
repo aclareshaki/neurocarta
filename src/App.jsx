@@ -3,20 +3,22 @@ import { useProfiles }  from './hooks/useProfiles'
 import { useApiKey }    from './hooks/useApiKey'
 import Header           from './components/Header'
 import Toolbar          from './components/Toolbar'
-import ProfileCard      from './components/ProfileCard'
-import ProfileForm      from './components/ProfileForm'
-import ApiKeyModal      from './components/ApiKeyModal'
-import NatalChartModal  from './components/NatalChartModal'
+import ProfileCard           from './components/ProfileCard'
+import ProfileForm           from './components/ProfileForm'
+import ApiKeyModal           from './components/ApiKeyModal'
+import NatalChartModal       from './components/NatalChartModal'
+import InterpretationModal   from './components/InterpretationModal'
 
 export default function App() {
   const { profiles, addProfile, updateProfile, deleteProfile, importProfiles, exportProfiles } = useProfiles()
   const { apiKey, saveApiKey } = useApiKey()
 
-  const [showForm,     setShowForm]     = useState(false)
-  const [editTarget,   setEditTarget]   = useState(null)
-  const [showSettings, setShowSettings] = useState(false)
-  const [chartTarget,  setChartTarget]  = useState(null)
-  const [importMsg,    setImportMsg]    = useState('')
+  const [showForm,          setShowForm]          = useState(false)
+  const [editTarget,        setEditTarget]        = useState(null)
+  const [showSettings,      setShowSettings]      = useState(false)
+  const [chartTarget,       setChartTarget]       = useState(null)
+  const [interpretTarget,   setInterpretTarget]   = useState(null)
+  const [importMsg,         setImportMsg]         = useState('')
 
   function openNew()            { setEditTarget(null); setShowForm(true) }
   function openEdit(p)          { setEditTarget(p); setShowForm(true) }
@@ -55,7 +57,7 @@ export default function App() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {profiles.map(p => (
-              <ProfileCard key={p.id} profile={p} onEdit={openEdit} onDelete={deleteProfile} onChart={openChart} />
+              <ProfileCard key={p.id} profile={p} onEdit={openEdit} onDelete={deleteProfile} onChart={openChart} onInterpret={p => setInterpretTarget(p)} />
             ))}
           </div>
         )}
@@ -70,7 +72,21 @@ export default function App() {
 
       {showForm    && <ProfileForm initial={editTarget} onSave={handleSave} onClose={() => { setShowForm(false); setEditTarget(null) }} />}
       {showSettings && <ApiKeyModal apiKey={apiKey} onSave={saveApiKey} onClose={() => setShowSettings(false)} />}
-      {chartTarget  && <NatalChartModal profile={chartTarget} apiKey={apiKey} onClose={() => setChartTarget(null)} />}
+      {chartTarget  && (
+        <NatalChartModal
+          profile={chartTarget}
+          apiKey={apiKey}
+          onClose={() => setChartTarget(null)}
+          onSaveChart={text => updateProfile(chartTarget.id, { savedChart: text, savedChartAt: new Date().toISOString() })}
+        />
+      )}
+      {interpretTarget && (
+        <InterpretationModal
+          profile={interpretTarget}
+          onSave={text => updateProfile(interpretTarget.id, { interpretation: text, interpretationAt: new Date().toISOString() })}
+          onClose={() => setInterpretTarget(null)}
+        />
+      )}
     </div>
   )
 }

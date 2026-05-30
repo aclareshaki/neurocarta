@@ -12,6 +12,12 @@ function formatDate(dateStr) {
   return `${parseInt(d)} de ${months[parseInt(m)-1]} de ${y}`
 }
 
+function formatSavedDate(isoStr) {
+  if (!isoStr) return ''
+  const d = new Date(isoStr)
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
 const SIGNS = [
   { sign: 'Capricornio', glyph: '♑', from:[12,22], to:[1,19] },
   { sign: 'Acuario',     glyph: '♒', from:[1,20],  to:[2,18] },
@@ -40,8 +46,10 @@ function sunSign(dateStr) {
   return null
 }
 
-export default function ProfileCard({ profile, onEdit, onDelete, onChart }) {
-  const [confirmDelete, setConfirmDelete] = useState(false)
+export default function ProfileCard({ profile, onEdit, onDelete, onChart, onInterpret }) {
+  const [confirmDelete,      setConfirmDelete]      = useState(false)
+  const [showChart,          setShowChart]          = useState(false)
+  const [showInterpretation, setShowInterpretation] = useState(false)
   const sign = sunSign(profile.date)
 
   return (
@@ -100,10 +108,77 @@ export default function ProfileCard({ profile, onEdit, onDelete, onChart }) {
           )}
         </div>
 
+        {/* Carta guardada */}
+        {profile.savedChart && (
+          <div className="mt-4 border-t border-parchment-200 pt-4">
+            <button
+              onClick={() => setShowChart(v => !v)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-gold-500 text-xs">✦</span>
+                <span className="section-title">Carta natal guardada</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {profile.savedChartAt && (
+                  <span className="text-[10px] text-sepia-300 font-sans hidden sm:inline">
+                    {formatSavedDate(profile.savedChartAt)}
+                  </span>
+                )}
+                <span className="text-sepia-400 text-xs" style={{ display:'inline-block', transform: showChart ? 'rotate(180deg)' : 'rotate(0deg)', transition:'transform 0.2s' }}>
+                  ▾
+                </span>
+              </div>
+            </button>
+            {showChart && (
+              <pre className="mt-3 text-sepia-700 text-xs leading-relaxed font-sans whitespace-pre-wrap break-words bg-parchment-100 border border-parchment-200 p-3 max-h-64 overflow-y-auto">
+                {profile.savedChart}
+              </pre>
+            )}
+          </div>
+        )}
+
+        {/* Interpretación de Claude */}
+        {profile.interpretation && (
+          <div className="mt-4 border-t border-parchment-200 pt-4">
+            <button
+              onClick={() => setShowInterpretation(v => !v)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-gold-500 text-xs">✦</span>
+                <span className="section-title">Interpretación de Claude</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {profile.interpretationAt && (
+                  <span className="text-[10px] text-sepia-300 font-sans hidden sm:inline">
+                    {formatSavedDate(profile.interpretationAt)}
+                  </span>
+                )}
+                <span className="text-sepia-400 text-xs" style={{ display:'inline-block', transform: showInterpretation ? 'rotate(180deg)' : 'rotate(0deg)', transition:'transform 0.2s' }}>
+                  ▾
+                </span>
+              </div>
+            </button>
+            {showInterpretation && (
+              <div className="mt-3 text-sepia-700 text-sm leading-relaxed font-sans whitespace-pre-wrap bg-parchment-100 border border-parchment-200 p-4 max-h-80 overflow-y-auto">
+                {profile.interpretation}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="mt-5 flex flex-wrap gap-2 border-t border-parchment-200 pt-4">
           <button onClick={() => onChart(profile)} className="btn-primary text-xs py-2 flex-1 sm:flex-none justify-center">
             <span className="text-gold-300">✦</span> Ver carta natal
+          </button>
+          <button
+            onClick={() => onInterpret(profile)}
+            className="btn-ghost text-xs py-2"
+            title={profile.interpretation ? 'Editar interpretación' : 'Añadir interpretación de Claude'}
+          >
+            {profile.interpretation ? '✎ Interpretación' : '+ Interpretación'}
           </button>
           <button onClick={() => onEdit(profile)} className="btn-ghost text-xs py-2">
             Editar

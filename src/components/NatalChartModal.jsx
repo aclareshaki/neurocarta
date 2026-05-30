@@ -5,10 +5,11 @@ const HOUSE_LABELS = {
   P: 'Placidus', W: 'Casas Enteras', K: 'Koch', E: 'Equal', O: 'Porfiry',
 }
 
-export default function NatalChartModal({ profile, apiKey, onClose }) {
+export default function NatalChartModal({ profile, apiKey, onClose, onSaveChart }) {
   const [status, setStatus] = useState('loading')
   const [result, setResult] = useState(null)
   const [copied, setCopied] = useState(false)
+  const [saved,  setSaved]  = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -41,7 +42,6 @@ export default function NatalChartModal({ profile, apiKey, onClose }) {
       ? result.content
       : formatNatalChart(result, profile.name)
 
-    // Try modern clipboard API first, fall back to execCommand for HTTP
     if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(text).then(() => {
         setCopied(true)
@@ -65,6 +65,14 @@ export default function NatalChartModal({ profile, apiKey, onClose }) {
       setTimeout(() => setCopied(false), 2000)
     } catch { /* nothing */ }
     document.body.removeChild(ta)
+  }
+
+  function handleSaveToProfile() {
+    if (!onSaveChart) return
+    const text = formatNatalChart(result, profile.name)
+    onSaveChart(text)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
   }
 
   function handleDownloadSvg() {
@@ -103,10 +111,18 @@ export default function NatalChartModal({ profile, apiKey, onClose }) {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2 mt-1 flex-wrap justify-end">
             {status === 'done' && result?.type === 'svg' && (
               <button onClick={handleDownloadSvg} className="btn-ghost text-xs py-1.5 px-3">
                 ↓ SVG
+              </button>
+            )}
+            {status === 'done' && result?.type === 'json' && (
+              <button
+                onClick={handleSaveToProfile}
+                className="btn-ghost text-xs py-1.5 px-3 text-gold-600 border border-gold-400/50 hover:bg-gold-50"
+              >
+                {saved ? '✓ Guardado' : '⊕ Guardar en ficha'}
               </button>
             )}
             {status === 'done' && (
