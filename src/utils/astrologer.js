@@ -147,7 +147,8 @@ export function formatNatalChart(data, profileName) {
   if (data.type === 'svg') return data.content
 
   const meta  = data.meta ?? {}
-  const chart = data.content?.chart ?? data.content ?? data
+  // Support both chart_data (v5 JSON) and chart (older shape)
+  const chart = data.content?.chart_data ?? data.content?.chart ?? data.content ?? data
 
   const lines = [
     `✦ ─────────────── CARTA NATAL ─────────────── ✦`,

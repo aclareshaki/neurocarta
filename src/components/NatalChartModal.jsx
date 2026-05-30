@@ -30,15 +30,35 @@ export default function NatalChartModal({ profile, apiKey, onClose }) {
     return () => { cancelled = true }
   }, [profile, apiKey])
 
-  async function handleCopy() {
+  function handleCopy() {
     const text = result?.type === 'svg'
       ? result.content
       : formatNatalChart(result, profile.name)
+
+    // Try modern clipboard API first, fall back to execCommand for HTTP
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }).catch(() => copyViaTextarea(text))
+    } else {
+      copyViaTextarea(text)
+    }
+  }
+
+  function copyViaTextarea(text) {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0'
+    document.body.appendChild(ta)
+    ta.focus()
+    ta.select()
     try {
-      await navigator.clipboard.writeText(text)
+      document.execCommand('copy')
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch { /* ignore */ }
+    } catch { /* nothing */ }
+    document.body.removeChild(ta)
   }
 
   function handleDownloadSvg() {
