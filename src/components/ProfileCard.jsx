@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import MarkdownRenderer from './MarkdownRenderer'
 
 const HOUSE_LABELS = {
   P: 'Placidus', W: 'Casas Enteras', K: 'Koch', E: 'Equal', O: 'Porfiry',
@@ -161,8 +162,8 @@ export default function ProfileCard({ profile, onEdit, onDelete, onChart, onInte
               </div>
             </button>
             {showInterpretation && (
-              <div className="mt-3 text-sepia-700 text-sm leading-relaxed font-sans whitespace-pre-wrap bg-parchment-100 border border-parchment-200 p-4 max-h-80 overflow-y-auto">
-                {profile.interpretation}
+              <div className="mt-3 bg-parchment-100 border border-parchment-200 p-4 max-h-80 overflow-y-auto">
+                <MarkdownRenderer text={profile.interpretation} />
               </div>
             )}
           </div>

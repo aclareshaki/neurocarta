@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import MarkdownRenderer from './MarkdownRenderer'
 
 export default function InterpretationModal({ profile, onSave, onClose }) {
-  const [text, setText] = useState(profile.interpretation ?? '')
+  const [text,  setText]  = useState(profile.interpretation ?? '')
+  const [tab,   setTab]   = useState('edit')   // 'edit' | 'preview'
   const [saved, setSaved] = useState(false)
 
   function handleSave() {
@@ -24,7 +26,7 @@ export default function InterpretationModal({ profile, onSave, onClose }) {
               {profile.name}
             </h2>
             <p className="text-xs text-sepia-400 font-sans mt-0.5">
-              Pega aquí la interpretación de Claude
+              Pega la respuesta de Claude en formato Markdown
             </p>
           </div>
           <button onClick={onClose} className="btn-ghost text-xl px-2 py-1 leading-none text-sepia-400 mt-1">
@@ -32,18 +34,58 @@ export default function InterpretationModal({ profile, onSave, onClose }) {
           </button>
         </div>
 
+        {/* Tabs */}
+        <div className="flex border-b border-parchment-200 shrink-0">
+          <button
+            onClick={() => setTab('edit')}
+            className={`flex-1 py-2.5 text-xs font-sans uppercase tracking-wider transition-colors ${
+              tab === 'edit'
+                ? 'text-sepia-700 border-b-2 border-gold-500 bg-parchment-50'
+                : 'text-sepia-400 hover:text-sepia-600'
+            }`}
+          >
+            ✎ Editar
+          </button>
+          <button
+            onClick={() => setTab('preview')}
+            className={`flex-1 py-2.5 text-xs font-sans uppercase tracking-wider transition-colors ${
+              tab === 'preview'
+                ? 'text-sepia-700 border-b-2 border-gold-500 bg-parchment-50'
+                : 'text-sepia-400 hover:text-sepia-600'
+            }`}
+          >
+            ✦ Vista previa
+          </button>
+        </div>
+
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          <p className="text-xs text-sepia-400 font-sans leading-relaxed bg-parchment-100 border border-parchment-200 px-3 py-2.5">
-            <span className="text-gold-500">✦</span> Copia la carta natal desde la ficha, pégala en Claude y pídele una lectura. Cuando tengas la respuesta, pégala aquí para guardarla.
-          </p>
-          <textarea
-            value={text}
-            onChange={e => setText(e.target.value)}
-            placeholder="Pega aquí la interpretación de Claude…"
-            className="input-field w-full h-64 resize-none font-sans text-sm leading-relaxed"
-            autoFocus
-          />
+        <div className="flex-1 overflow-y-auto">
+          {tab === 'edit' && (
+            <div className="p-5 space-y-3">
+              <p className="text-xs text-sepia-400 font-sans leading-relaxed bg-parchment-100 border border-parchment-200 px-3 py-2.5">
+                <span className="text-gold-500">✦</span> Copia la carta natal guardada, pégala en tu proyecto de Claude y solicita la interpretación. Cuando tengas la respuesta en Markdown, pégala aquí.
+              </p>
+              <textarea
+                value={text}
+                onChange={e => setText(e.target.value)}
+                placeholder={`## ☉ Sol en Escorpio — Casa VIII\nInterpretación del sol...\n\n## ☽ Luna en Piscis — Casa IV\nInterpretación de la luna...`}
+                className="input-field w-full h-72 resize-none font-mono text-xs leading-relaxed"
+                autoFocus
+              />
+            </div>
+          )}
+
+          {tab === 'preview' && (
+            <div className="p-5">
+              {text.trim() ? (
+                <MarkdownRenderer text={text} />
+              ) : (
+                <p className="text-sepia-400 text-sm font-sans italic text-center py-12">
+                  Escribe o pega texto en la pestaña Editar para ver la vista previa
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
