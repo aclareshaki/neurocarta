@@ -1,6 +1,42 @@
 /**
- * Calls the Astrologer API on RapidAPI to fetch a natal chart.
- * Docs: https://rapidapi.com/astrologer/api/astrologer
+ * Geocodes a place name to lat/lng using OpenStreetMap Nominatim (free, no key needed).
+ */
+async function geocode(place) {
+  if (!place) return { latitude: 0, longitude: 0, timezone: 'UTC' }
+
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place)}&format=json&limit=1`
+  const res = await fetch(url, {
+    headers: { 'Accept-Language': 'es', 'User-Agent': 'NeuroCarta/1.0' },
+  })
+  if (!res.ok) return { latitude: 0, longitude: 0, timezone: 'UTC' }
+
+  const data = await res.json()
+  if (!data.length) return { latitude: 0, longitude: 0, timezone: 'UTC' }
+
+  const { lat, lon } = data[0]
+
+  // Resolve timezone from coordinates using timeapi.io (free)
+  try {
+    const tzRes = await fetch(
+      `https://timeapi.io/api/timezone/coordinate?latitude=${lat}&longitude=${lon}`
+    )
+    if (tzRes.ok) {
+      const tzData = await tzRes.json()
+      return {
+        latitude: parseFloat(lat),
+        longitude: parseFloat(lon),
+        timezone: tzData.timeZone ?? 'UTC',
+      }
+    }
+  } catch {
+    // fall through
+  }
+
+  return { latitude: parseFloat(lat), longitude: parseFloat(lon), timezone: 'UTC' }
+}
+
+/**
+ * Calls the Astrologer API v5 on RapidAPI to fetch a natal (birth) chart.
  *
  * @param {object} params
  * @param {string} params.apiKey  - RapidAPI key
@@ -12,30 +48,22 @@
 export async function fetchNatalChart({ apiKey, name, date, time, place }) {
   if (!apiKey) throw new Error('Introduce tu API key de RapidAPI primero.')
 
-  // Build date/time parts
   const [year, month, day] = date.split('-').map(Number)
-  const [hour, minute] = (time || '12:00').split(':').map(Number)
+  const [hour, minute]     = (time || '12:00').split(':').map(Number)
 
-  // Astrologer API v2 endpoint — western natal chart
-  const url = 'https://astrologer.p.rapidapi.com/api/v2/birth-chart'
+  // Step 1: geocode
+  const { latitude, longitude, timezone } = await geocode(place)
 
+  // Step 2: call Astrologer API v5
   const body = {
-    subject: {
-      name,
-      year,
-      month,
-      day,
-      hour,
-      minute,
-      longitude: 0,   // will be geocoded server-side via city
-      latitude: 0,
-      city: place,
-      nation: '',
-      timezone: 'UTC',
-    },
+    year, month, day, hour, minute,
+    latitude,
+    longitude,
+    timezone,
+    location_precision: 4,
   }
 
-  const response = await fetch(url, {
+  const res = await fetch('https://astrologer.p.rapidapi.com/api/v5/birth-chart', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -45,78 +73,114 @@ export async function fetchNatalChart({ apiKey, name, date, time, place }) {
     body: JSON.stringify(body),
   })
 
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(`Error ${response.status}: ${text}`)
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Error ${res.status}: ${text}`)
   }
 
-  return response.json()
+  const json = await res.json()
+  return { ...json, _meta: { name, place, latitude, longitude, timezone } }
+}
+
+// ─── Formatter ────────────────────────────────────────────────────────────────
+
+const PLANET_EMOJI = {
+  Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂',
+  Jupiter: '♃', Saturn: '♄', Uranus: '⛢', Neptune: '♆', Pluto: '♇',
+  'True Node': '☊', 'Mean Node': '☊', Chiron: '⚷', Lilith: '⚸',
+}
+
+const SIGN_EMOJI = {
+  Ari: '♈', Tau: '♉', Gem: '♊', Can: '♋', Leo: '♌', Vir: '♍',
+  Lib: '♎', Sco: '♏', Sag: '♐', Cap: '♑', Aqu: '♒', Pis: '♓',
+}
+
+function signGlyph(sign = '') {
+  const key = sign.slice(0, 3)
+  return SIGN_EMOJI[key] ?? ''
 }
 
 /**
- * Formats the raw natal chart JSON into human-readable text.
+ * Formats the raw v5 natal chart JSON into human-readable text.
  */
 export function formatNatalChart(data, profileName) {
   if (!data) return ''
 
-  const lines = [`✦ CARTA NATAL — ${profileName.toUpperCase()} ✦`, '']
+  const meta  = data._meta ?? {}
+  const chart = data.chart ?? data
 
-  // Subject info
-  if (data.subject) {
-    const s = data.subject
-    lines.push(`Nombre: ${s.name ?? profileName}`)
-    if (s.year) lines.push(`Fecha: ${s.day}/${s.month}/${s.year} ${s.hour ?? ''}:${String(s.minute ?? '0').padStart(2,'0')}`)
-    if (s.city) lines.push(`Lugar: ${s.city}`)
-    lines.push('')
-  }
+  const lines = [
+    `✦ ─────────────── CARTA NATAL ─────────────── ✦`,
+    `  ${(meta.name ?? profileName).toUpperCase()}`,
+    meta.place ? `  ${meta.place}` : '',
+    meta.latitude != null
+      ? `  ${meta.latitude.toFixed(4)}° lat, ${meta.longitude.toFixed(4)}° lon  ·  ${meta.timezone}`
+      : '',
+    '',
+  ].filter(l => l !== undefined)
 
-  // Sun, Moon, Ascendant
-  const planets = data.planets ?? data.planets_degrees_ut ?? []
+  // ── Planets / points ──
+  const planets = chart.planets ?? chart.planets_degrees_ut ?? chart.bodies ?? []
   if (Array.isArray(planets) && planets.length) {
-    lines.push('── PLANETAS ──')
+    lines.push('── PLANETAS Y PUNTOS ──────────────────────────')
     for (const p of planets) {
-      const name = p.name ?? p.planet ?? p.id ?? '?'
-      const sign = p.sign ?? p.zodiac_sign ?? ''
-      const deg  = p.position != null ? `${Number(p.position).toFixed(2)}°` : (p.abs_pos != null ? `${Number(p.abs_pos).toFixed(2)}°` : '')
-      const house = p.house != null ? ` Casa ${p.house}` : ''
-      const retro = p.retrograde ? ' ℞' : ''
-      lines.push(`  ${name.padEnd(12)} ${sign.padEnd(12)} ${deg}${house}${retro}`)
+      const rawName = p.name ?? p.id ?? '?'
+      const emoji   = PLANET_EMOJI[rawName] ?? '·'
+      const name    = `${emoji} ${rawName}`.padEnd(18)
+      const sign    = p.sign ?? p.zodiac_sign ?? ''
+      const glyph   = signGlyph(sign)
+      const deg     = p.position != null
+        ? formatDeg(p.position)
+        : p.abs_pos != null ? formatDeg(p.abs_pos % 30) : ''
+      const house   = p.house != null ? `  Casa ${p.house}` : ''
+      const retro   = p.retrograde ? ' ℞' : ''
+      lines.push(`  ${name} ${glyph} ${sign.padEnd(12)} ${deg}${house}${retro}`)
     }
     lines.push('')
   }
 
-  // Houses
-  const houses = data.houses ?? []
+  // ── Houses ──
+  const houses = chart.houses ?? chart.cusps ?? []
   if (Array.isArray(houses) && houses.length) {
-    lines.push('── CASAS ──')
+    lines.push('── CÚSPIDES DE CASAS ──────────────────────────')
     for (const h of houses) {
-      const num  = h.number ?? h.house ?? '?'
-      const sign = h.sign ?? h.zodiac_sign ?? ''
-      const deg  = h.position != null ? `${Number(h.position).toFixed(2)}°` : ''
-      lines.push(`  Casa ${String(num).padEnd(3)} ${sign.padEnd(12)} ${deg}`)
+      const num   = String(h.number ?? h.house ?? '?').padStart(2)
+      const sign  = h.sign ?? h.zodiac_sign ?? ''
+      const glyph = signGlyph(sign)
+      const deg   = h.position != null ? formatDeg(h.position) : ''
+      lines.push(`  Casa ${num}  ${glyph} ${sign.padEnd(12)} ${deg}`)
     }
     lines.push('')
   }
 
-  // Aspects
-  const aspects = data.aspects ?? []
+  // ── Aspects ──
+  const aspects = chart.aspects ?? []
   if (Array.isArray(aspects) && aspects.length) {
-    lines.push('── ASPECTOS ──')
+    lines.push('── ASPECTOS ────────────────────────────────────')
     for (const a of aspects) {
-      const p1   = a.p1_name ?? a.planet1 ?? '?'
-      const p2   = a.p2_name ?? a.planet2 ?? '?'
+      const p1   = a.p1_name ?? a.planet1 ?? a.body1 ?? '?'
+      const p2   = a.p2_name ?? a.planet2 ?? a.body2 ?? '?'
       const type = a.aspect  ?? a.type    ?? '?'
       const orb  = a.orbit   != null ? ` (orbe ${Number(a.orbit).toFixed(2)}°)` : ''
-      lines.push(`  ${p1} ${type} ${p2}${orb}`)
+      lines.push(`  ${p1}  ${type}  ${p2}${orb}`)
     }
     lines.push('')
   }
 
-  // Fallback: raw JSON block
-  if (lines.length <= 4) {
-    lines.push('── DATOS CRUDOS ──')
+  // ── Fallback: raw JSON if nothing matched ──
+  if (lines.length <= 6) {
+    lines.push('── DATOS CRUDOS ────────────────────────────────')
     lines.push(JSON.stringify(data, null, 2))
   }
 
+  lines.push('✦ ─────────────────────────────────────────── ✦')
   return lines.join('\n')
+}
+
+function formatDeg(deg) {
+  const d = Math.floor(deg)
+  const mf = (deg - d) * 60
+  const m  = Math.floor(mf)
+  const s  = Math.round((mf - m) * 60)
+  return `${d}°${String(m).padStart(2,'0')}'${String(s).padStart(2,'0')}"`
 }
