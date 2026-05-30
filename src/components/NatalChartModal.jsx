@@ -3,12 +3,11 @@ import { fetchNatalChart, formatNatalChart } from '../utils/astrologer'
 
 export default function NatalChartModal({ profile, apiKey, onClose }) {
   const [status, setStatus] = useState('loading')
-  const [result, setResult] = useState(null)  // { type: 'svg'|'json', content, meta }
+  const [result, setResult] = useState(null)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-
     async function load() {
       try {
         const data = await fetchNatalChart({
@@ -27,7 +26,6 @@ export default function NatalChartModal({ profile, apiKey, onClose }) {
         setStatus('error')
       }
     }
-
     load()
     return () => { cancelled = true }
   }, [profile, apiKey])
@@ -55,52 +53,62 @@ export default function NatalChartModal({ profile, apiKey, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative card w-full max-w-2xl max-h-[90vh] flex flex-col fade-in-up glow-purple">
+      <div className="absolute inset-0 bg-sepia-900/30 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative card w-full max-w-2xl max-h-[92vh] flex flex-col fade-in-up shadow-2xl shadow-sepia-900/15">
+        <div className="h-px bg-gradient-to-r from-transparent via-gold-400/70 to-transparent shrink-0" />
 
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-white/5 shrink-0">
+        <div className="flex items-start justify-between p-5 border-b border-parchment-200 shrink-0">
           <div>
-            <h2 className="text-base font-semibold text-white">Carta Natal</h2>
-            <p className="text-xs text-cosmos-400">{profile.name}</p>
-            {result?.meta?.city && (
-              <p className="text-xs text-slate-500">
-                {result.meta.city} · {result.meta.timezone}
+            <p className="section-title mb-1">C A R T A · N A T A L</p>
+            <h2 className="font-serif text-2xl font-semibold text-sepia-800 leading-tight">
+              {profile.name}
+            </h2>
+            {result?.meta && (
+              <p className="text-xs text-sepia-400 font-sans mt-0.5">
+                {result.meta.city || profile.place}
+                {result.meta.timezone && result.meta.timezone !== 'UTC' && (
+                  <span className="text-parchment-400"> · {result.meta.timezone}</span>
+                )}
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mt-1">
             {status === 'done' && result?.type === 'svg' && (
-              <button onClick={handleDownloadSvg} className="btn-ghost text-xs px-3 py-1.5">
+              <button onClick={handleDownloadSvg} className="btn-ghost text-xs py-1.5 px-3">
                 ↓ SVG
               </button>
             )}
             {status === 'done' && (
-              <button onClick={handleCopy} className="btn-ghost text-xs px-3 py-1.5">
+              <button onClick={handleCopy} className="btn-ghost text-xs py-1.5 px-3">
                 {copied ? '✓ Copiado' : '⎘ Copiar'}
               </button>
             )}
-            <button onClick={onClose} className="btn-ghost text-lg px-2 py-1 leading-none">×</button>
+            <button onClick={onClose} className="btn-ghost text-xl px-2 py-1 leading-none text-sepia-400">
+              ×
+            </button>
           </div>
         </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto">
           {status === 'loading' && (
-            <div className="flex flex-col items-center gap-4 py-16">
-              <span className="text-5xl spin-slow">✦</span>
-              <p className="text-slate-400 text-sm">Calculando carta natal…</p>
-              <p className="text-slate-600 text-xs">Geocodificando ubicación y consultando API…</p>
+            <div className="flex flex-col items-center gap-5 py-16">
+              <span className="text-5xl text-gold-400 spin-slow select-none">✦</span>
+              <div className="text-center space-y-1">
+                <p className="font-serif text-lg text-sepia-700">Calculando carta natal…</p>
+                <p className="text-xs text-sepia-400 font-sans">Geocodificando ubicación y consultando API</p>
+              </div>
             </div>
           )}
 
           {status === 'error' && (
-            <div className="p-5 space-y-3">
-              <p className="text-red-400 font-medium text-sm">Error al obtener la carta natal</p>
-              <pre className="text-red-300 text-xs bg-red-500/10 rounded-xl p-4 whitespace-pre-wrap break-words">
+            <div className="p-6 space-y-4">
+              <p className="font-serif text-lg text-terra-600">Error al obtener la carta natal</p>
+              <pre className="text-terra-500 text-xs bg-terra-600/5 border border-terra-600/15 p-4 whitespace-pre-wrap break-words font-sans leading-relaxed">
                 {result?.content}
               </pre>
-              <p className="text-slate-400 text-xs">
+              <p className="text-sepia-400 text-xs font-sans">
                 Verifica que tu API key sea correcta y que tengas suscripción activa en RapidAPI.
               </p>
             </div>
@@ -108,17 +116,19 @@ export default function NatalChartModal({ profile, apiKey, onClose }) {
 
           {status === 'done' && result?.type === 'svg' && (
             <div
-              className="p-4 flex items-center justify-center"
+              className="p-4 flex items-center justify-center [&_svg]:max-w-full [&_svg]:h-auto"
               dangerouslySetInnerHTML={{ __html: result.content }}
             />
           )}
 
           {status === 'done' && result?.type === 'json' && (
-            <pre className="p-5 text-slate-200 text-xs leading-relaxed font-mono whitespace-pre-wrap break-words">
+            <pre className="p-6 text-sepia-700 text-sm leading-relaxed font-sans whitespace-pre-wrap break-words">
               {formatNatalChart(result, profile.name)}
             </pre>
           )}
         </div>
+
+        <div className="h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent shrink-0" />
       </div>
     </div>
   )

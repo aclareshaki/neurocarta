@@ -9,8 +9,7 @@ export default function Toolbar({ count, onNew, onExport, onImport }) {
     const reader = new FileReader()
     reader.onload = evt => {
       try {
-        const data = JSON.parse(evt.target.result)
-        onImport(data)
+        onImport(JSON.parse(evt.target.result))
       } catch {
         alert('El archivo no es un JSON válido.')
       }
@@ -22,30 +21,14 @@ export default function Toolbar({ count, onNew, onExport, onImport }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
       <button onClick={onNew} className="btn-primary">
-        <span>✦</span> Nueva ficha
+        <span className="text-gold-300">✦</span> Nueva ficha
       </button>
-
       <div className="flex gap-2 ml-auto">
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".json,application/json"
-          onChange={handleImportFile}
-          className="hidden"
-        />
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="btn-ghost text-xs"
-          title="Importar fichas desde JSON"
-        >
+        <input ref={fileRef} type="file" accept=".json" onChange={handleImportFile} className="hidden" />
+        <button onClick={() => fileRef.current?.click()} className="btn-ghost text-xs">
           ↑ Importar
         </button>
-        <button
-          onClick={onExport}
-          disabled={count === 0}
-          className="btn-ghost text-xs"
-          title="Exportar todas las fichas a JSON"
-        >
+        <button onClick={onExport} disabled={count === 0} className="btn-ghost text-xs">
           ↓ Exportar{count > 0 && ` (${count})`}
         </button>
       </div>

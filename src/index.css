@@ -3,120 +3,91 @@
 @tailwind utilities;
 
 @layer base {
-  * {
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; }
 
   body {
-    @apply bg-mystic-900 text-slate-100 font-sans antialiased;
-    background-image:
-      radial-gradient(ellipse at 20% 30%, rgba(124,58,237,0.12) 0%, transparent 55%),
-      radial-gradient(ellipse at 80% 70%, rgba(59,130,246,0.08) 0%, transparent 55%),
-      radial-gradient(ellipse at 60% 10%, rgba(168,85,247,0.08) 0%, transparent 40%);
+    @apply bg-parchment-100 text-sepia-800 font-sans antialiased;
     min-height: 100vh;
   }
 
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    @apply bg-mystic-800;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-cosmos-700 rounded-full;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-cosmos-500;
-  }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { @apply bg-parchment-200; }
+  ::-webkit-scrollbar-thumb { @apply bg-parchment-400 rounded-full; }
 }
 
 @layer components {
+
+  /* ── Buttons ── */
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cosmos-600 hover:bg-cosmos-500
-           text-white text-sm font-medium transition-all duration-200
-           focus:outline-none focus:ring-2 focus:ring-cosmos-400 focus:ring-offset-2 focus:ring-offset-mystic-900
-           disabled:opacity-50 disabled:cursor-not-allowed active:scale-95;
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-none
+           bg-sepia-700 hover:bg-sepia-600 text-parchment-50
+           text-sm font-sans font-medium tracking-wide
+           transition-colors duration-150
+           focus:outline-none focus:ring-2 focus:ring-sepia-400 focus:ring-offset-2 focus:ring-offset-parchment-100
+           disabled:opacity-40 disabled:cursor-not-allowed;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl
-           text-slate-300 hover:text-white hover:bg-white/5
-           text-sm font-medium transition-all duration-200
-           focus:outline-none focus:ring-2 focus:ring-cosmos-400 focus:ring-offset-2 focus:ring-offset-mystic-900
-           disabled:opacity-50 disabled:cursor-not-allowed active:scale-95;
+    @apply inline-flex items-center gap-2 px-4 py-2
+           text-sepia-500 hover:text-sepia-800 hover:bg-parchment-200
+           text-sm font-sans font-normal tracking-wide
+           border border-transparent hover:border-parchment-300
+           transition-all duration-150
+           focus:outline-none focus:ring-2 focus:ring-sepia-300 focus:ring-offset-1
+           disabled:opacity-40 disabled:cursor-not-allowed;
   }
 
   .btn-danger {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl
-           text-red-400 hover:text-white hover:bg-red-500/20
-           text-sm font-medium transition-all duration-200
-           focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-mystic-900
-           active:scale-95;
+    @apply inline-flex items-center gap-2 px-4 py-2
+           text-terra-600 hover:text-terra-400 hover:bg-terra-600/10
+           text-sm font-sans transition-colors duration-150
+           focus:outline-none;
   }
 
+  /* ── Cards ── */
   .card {
-    @apply bg-mystic-800/60 backdrop-blur-sm border border-white/5 rounded-2xl;
+    @apply bg-parchment-50 border border-parchment-300;
   }
 
+  /* ── Inputs ── */
   .input-field {
-    @apply w-full bg-mystic-700/50 border border-white/10 rounded-xl px-4 py-2.5
-           text-slate-100 placeholder-slate-500 text-sm
-           focus:outline-none focus:ring-2 focus:ring-cosmos-500 focus:border-transparent
-           transition-all duration-200;
+    @apply w-full bg-white border border-parchment-300
+           px-4 py-2.5 text-sepia-800 placeholder-parchment-400
+           text-sm font-sans
+           focus:outline-none focus:ring-1 focus:ring-gold-500 focus:border-gold-500
+           transition-all duration-150;
   }
 
   .label {
-    @apply block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide;
+    @apply block text-[10px] font-sans font-medium text-sepia-400 mb-1.5 uppercase tracking-widest;
   }
 
-  .glow-purple {
-    box-shadow: 0 0 30px rgba(124, 58, 237, 0.2);
+  /* ── Decorative ── */
+  .divider {
+    @apply border-t border-parchment-300 my-1;
+  }
+
+  .section-title {
+    @apply font-sans text-[10px] font-medium tracking-widest uppercase text-sepia-400;
   }
 }
 
-/* Animaciones */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.shimmer {
-  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.05) 50%, transparent 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
+/* ── Animations ── */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-.fade-in-up {
-  animation: fadeInUp 0.35s ease-out forwards;
-}
+.fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }
 
 @keyframes spin-slow {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+.spin-slow { animation: spin-slow 10s linear infinite; }
 
-.spin-slow {
-  animation: spin-slow 8s linear infinite;
+/* ── Planet table rows ── */
+.planet-row {
+  @apply flex items-center gap-3 py-3 border-b border-parchment-200 last:border-0;
 }
 
-/* Stars background dots */
-.stars {
-  background-image:
-    radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.4) 0%, transparent 100%),
-    radial-gradient(1px 1px at 30% 40%, rgba(255,255,255,0.3) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 55% 20%, rgba(255,255,255,0.5) 0%, transparent 100%),
-    radial-gradient(1px 1px at 70% 60%, rgba(255,255,255,0.2) 0%, transparent 100%),
-    radial-gradient(1px 1px at 85% 35%, rgba(255,255,255,0.4) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 95% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
-    radial-gradient(1px 1px at 45% 75%, rgba(255,255,255,0.2) 0%, transparent 100%),
-    radial-gradient(1px 1px at 20% 85%, rgba(255,255,255,0.3) 0%, transparent 100%);
-}
+.planet-row:last-child { border-bottom: none; }

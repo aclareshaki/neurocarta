@@ -18,57 +18,35 @@ export default function App() {
   const [chartTarget,  setChartTarget]  = useState(null)
   const [importMsg,    setImportMsg]    = useState('')
 
-  function openNew() {
-    setEditTarget(null)
-    setShowForm(true)
-  }
+  function openNew()            { setEditTarget(null); setShowForm(true) }
+  function openEdit(p)          { setEditTarget(p); setShowForm(true) }
 
-  function openEdit(profile) {
-    setEditTarget(profile)
-    setShowForm(true)
-  }
-
-  function handleSaveProfile(data) {
-    if (editTarget) {
-      updateProfile(editTarget.id, data)
-    } else {
-      addProfile(data)
-    }
+  function handleSave(data) {
+    editTarget ? updateProfile(editTarget.id, data) : addProfile(data)
   }
 
   function handleImport(data) {
     try {
       const n = importProfiles(data)
-      setImportMsg(`${n} ficha${n !== 1 ? 's' : ''} importada${n !== 1 ? 's' : ''} correctamente.`)
+      setImportMsg(`${n} ficha${n !== 1 ? 's' : ''} importada${n !== 1 ? 's' : ''}.`)
       setTimeout(() => setImportMsg(''), 4000)
-    } catch (err) {
-      alert(err.message)
-    }
+    } catch (err) { alert(err.message) }
   }
 
   function openChart(profile) {
-    if (!apiKey) {
-      setShowSettings(true)
-    } else {
-      setChartTarget(profile)
-    }
+    if (!apiKey) { setShowSettings(true) } else { setChartTarget(profile) }
   }
 
   return (
-    <div className="min-h-screen stars">
+    <div className="min-h-screen bg-parchment-100">
       <Header onOpenSettings={() => setShowSettings(true)} />
 
-      <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        <Toolbar
-          count={profiles.length}
-          onNew={openNew}
-          onExport={exportProfiles}
-          onImport={handleImport}
-        />
+      <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+        <Toolbar count={profiles.length} onNew={openNew} onExport={exportProfiles} onImport={handleImport} />
 
         {importMsg && (
-          <div className="rounded-xl bg-cosmos-700/20 border border-cosmos-700/30 px-4 py-3 text-sm text-cosmos-200 fade-in-up">
-            ✓ {importMsg}
+          <div className="bg-parchment-50 border border-parchment-300 px-4 py-3 text-sm text-sepia-600 font-sans fade-in-up flex items-center gap-2">
+            <span className="text-gold-500">✦</span> {importMsg}
           </div>
         )}
 
@@ -77,42 +55,22 @@ export default function App() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {profiles.map(p => (
-              <ProfileCard
-                key={p.id}
-                profile={p}
-                onEdit={openEdit}
-                onDelete={deleteProfile}
-                onChart={openChart}
-              />
+              <ProfileCard key={p.id} profile={p} onEdit={openEdit} onDelete={deleteProfile} onChart={openChart} />
             ))}
           </div>
         )}
       </main>
 
-      {/* Modals */}
-      {showForm && (
-        <ProfileForm
-          initial={editTarget}
-          onSave={handleSaveProfile}
-          onClose={() => { setShowForm(false); setEditTarget(null) }}
-        />
-      )}
+      {/* Footer */}
+      <footer className="border-t border-parchment-300 mt-16 py-6">
+        <p className="text-center text-[10px] font-sans uppercase tracking-widest text-parchment-400">
+          ✦ · N E U R O C A R T A · ✦
+        </p>
+      </footer>
 
-      {showSettings && (
-        <ApiKeyModal
-          apiKey={apiKey}
-          onSave={saveApiKey}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
-
-      {chartTarget && (
-        <NatalChartModal
-          profile={chartTarget}
-          apiKey={apiKey}
-          onClose={() => setChartTarget(null)}
-        />
-      )}
+      {showForm    && <ProfileForm initial={editTarget} onSave={handleSave} onClose={() => { setShowForm(false); setEditTarget(null) }} />}
+      {showSettings && <ApiKeyModal apiKey={apiKey} onSave={saveApiKey} onClose={() => setShowSettings(false)} />}
+      {chartTarget  && <NatalChartModal profile={chartTarget} apiKey={apiKey} onClose={() => setChartTarget(null)} />}
     </div>
   )
 }
@@ -120,13 +78,16 @@ export default function App() {
 function EmptyState({ onNew }) {
   return (
     <div className="text-center py-20 fade-in-up">
-      <div className="text-6xl mb-4 spin-slow inline-block">✦</div>
-      <h2 className="text-xl font-semibold text-white mb-2">Sin fichas todavía</h2>
-      <p className="text-slate-400 text-sm mb-6 max-w-xs mx-auto">
+      <div className="text-5xl text-gold-400 mb-5 spin-slow inline-block select-none">✦</div>
+      <p className="section-title mb-3">Bienvenido a NeuroCarta</p>
+      <h2 className="font-serif text-2xl font-semibold text-sepia-700 mb-3">
+        Sin fichas todavía
+      </h2>
+      <p className="text-sepia-400 text-sm font-sans mb-8 max-w-xs mx-auto leading-relaxed">
         Crea tu primera ficha de nacimiento para comenzar a calcular cartas natales.
       </p>
       <button onClick={onNew} className="btn-primary mx-auto">
-        ✦ Crear primera ficha
+        <span className="text-gold-300">✦</span> Crear primera ficha
       </button>
     </div>
   )

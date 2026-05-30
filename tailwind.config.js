@@ -4,31 +4,45 @@ export default {
   theme: {
     extend: {
       colors: {
-        cosmos: {
-          50: '#f0eeff',
-          100: '#e4e0ff',
-          200: '#cdc5ff',
-          300: '#a99bff',
-          400: '#8b6aff',
-          500: '#7c3aed',
-          600: '#6d28d9',
-          700: '#5b21b6',
-          800: '#4c1d95',
-          900: '#2e1065',
+        parchment: {
+          50:  '#fdfaf5',
+          100: '#f8f2e6',
+          200: '#f0e6d2',
+          300: '#e4d4b8',
+          400: '#d4bc98',
+          500: '#bfa07a',
         },
-        mystic: {
-          900: '#0a0a1a',
-          800: '#0f0f2e',
-          700: '#141438',
-          600: '#1a1a4a',
-          500: '#1e1e5a',
+        sepia: {
+          50:  '#f7f3ef',
+          100: '#ede3d8',
+          200: '#d9c8b4',
+          300: '#c0a882',
+          400: '#9e7f56',
+          500: '#7a5c38',
+          600: '#5c4228',
+          700: '#3e2c18',
+          800: '#2a1e10',
+          900: '#1a1208',
+        },
+        gold: {
+          300: '#e8c96a',
+          400: '#d4a832',
+          500: '#b8881a',
+          600: '#9a6e10',
+          700: '#7a5408',
+        },
+        terra: {
+          400: '#c4856a',
+          500: '#a86348',
+          600: '#8a4a30',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        serif: ['"EB Garamond"', 'Georgia', 'serif'],
+        sans:  ['Inter', 'system-ui', 'sans-serif'],
       },
-      backgroundImage: {
-        'star-field': "radial-gradient(ellipse at 20% 50%, rgba(124,58,237,0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(59,130,246,0.1) 0%, transparent 50%)",
+      letterSpacing: {
+        widest2: '0.25em',
       },
     },
   },
