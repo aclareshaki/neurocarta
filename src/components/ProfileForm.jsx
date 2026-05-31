@@ -57,7 +57,7 @@ export default function ProfileForm({ onSave, onClose, initial }) {
                 <input type="date" value={form.date} onChange={set('date')} className="input-field" />
               </div>
               <div>
-                <label className="label">Hora (opcional)</label>
+                <label className="label">Hora (obligatoria)</label>
                 <input type="time" value={form.time} onChange={set('time')} className="input-field" />
               </div>
             </div>
