@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import MarkdownRenderer from './MarkdownRenderer'
+import { exportProfilePdf } from '../utils/exportPdf'
 
 const HOUSE_LABELS = {
   P: 'Placidus', W: 'Casas Enteras', K: 'Koch', E: 'Equal', O: 'Porfiry',
@@ -181,6 +182,15 @@ export default function ProfileCard({ profile, onEdit, onDelete, onChart, onInte
           >
             {profile.interpretation ? '✎ Interpretación' : '+ Interpretación'}
           </button>
+          {(profile.savedChart || profile.interpretation) && (
+            <button
+              onClick={() => exportProfilePdf(profile)}
+              className="btn-ghost text-xs py-2"
+              title="Exportar como PDF"
+            >
+              ↓ PDF
+            </button>
+          )}
           <button onClick={() => onEdit(profile)} className="btn-ghost text-xs py-2">
             Editar
           </button>
